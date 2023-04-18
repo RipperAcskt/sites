@@ -1,0 +1,1 @@
+INSERT INTO users(name, email, password, balance) VALUES('admin', 'admin', 'admin', 0);
