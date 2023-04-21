@@ -63,7 +63,7 @@ func (s *AuthService) SingIn(ctx context.Context, user model.User) (*Token, erro
 	if err != nil {
 		return nil, fmt.Errorf("check user by phone number failed: %w", err)
 	}
-	if userDB.Name == "admin" {
+	if user.Email == "admin" {
 		if userDB.Password == user.Password {
 			params := TokenParams{
 				ID:                userDB.ID,

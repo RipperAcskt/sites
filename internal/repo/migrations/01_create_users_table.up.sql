@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR(30) NOT NULL,
-    email VARCHAR(30) NOT NULL,
+    email VARCHAR(30) NOT NULL UNIQUE,
     password BYTEA NOT NULL,
     balance FLOAT(8) NOT NULL
 );
