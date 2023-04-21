@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrEmpty = fmt.Errorf("error no rows")
+	ErrEmpty    = fmt.Errorf("error no rows")
+	ErrComplete = fmt.Errorf("order alredy complete or expired")
 )
 
 type Service struct {

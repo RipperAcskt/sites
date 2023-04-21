@@ -149,7 +149,7 @@ func (p *Postgres) GetPaymentId(ctx context.Context, id string) (string, float64
 
 	var order_id string
 	var balance float64
-	fmt.Println(id)
+
 	err := p.DB.QueryRowContext(queryCtx, "SELECT order_id, balance FROM orders WHERE user_id = $1", id).Scan(&order_id, &balance)
 	if err != nil {
 		return "", 0, fmt.Errorf("query row context failed: %w", err)
@@ -166,7 +166,13 @@ func (p *Postgres) CompletePayment(ctx context.Context, order_id, user_id string
 		return fmt.Errorf("exec failed: %w", err)
 	}
 
-	_, err = p.DB.ExecContext(queryCtx, "UPDATE users SET balance = $1 WHERE user_id = $2", balance, user_id)
+	var b float64
+	err = p.DB.QueryRowContext(queryCtx, "SELECT balance FROM users WHERE id = $1", user_id).Scan(&b)
+	if err != nil {
+		return fmt.Errorf("query row context failed: %w", err)
+	}
+
+	_, err = p.DB.ExecContext(queryCtx, "UPDATE users SET balance = $1 WHERE id = $2", b+balance, user_id)
 	if err != nil {
 		return fmt.Errorf("exec failed: %w", err)
 	}
@@ -229,4 +235,18 @@ func (p *Postgres) GetAllPayments(ctx context.Context) ([]model.Order, error) {
 		orders = append(orders, order)
 	}
 	return orders, nil
+}
+
+func (p *Postgres) GetPaymentById(ctx context.Context, id string) (string, float64, string, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var order_id string
+	var balance float64
+	var state string
+	err := p.DB.QueryRowContext(queryCtx, "SELECT order_id, balance, state FROM orders WHERE id = $1", id).Scan(&order_id, &balance, &state)
+	if err != nil {
+		return "", 0, "", fmt.Errorf("query row context failed: %w", err)
+	}
+	return order_id, balance, state, nil
 }

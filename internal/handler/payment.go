@@ -118,3 +118,39 @@ func (h *Handler) GetPayments(c *gin.Context) {
 	})
 
 }
+
+func (h *Handler) CompletePayment(c *gin.Context) {
+	admin, ok := c.Get("admin")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+
+	if !admin.(bool) {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
+
+	id := c.Param("id")
+
+	err := h.s.Complete(c, id)
+	if err != nil {
+		if errors.Is(err, service.ErrComplete) {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Errorf("complete failed: %w", err).Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+
+}
