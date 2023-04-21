@@ -40,6 +40,7 @@ func (h *Handler) CreatePayment(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": "verefy token failed",
 		})
+		return
 	}
 
 	id, _ := strconv.ParseUint(k.(string), 10, 64)
@@ -67,6 +68,7 @@ func (h *Handler) GetPayment(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": "verefy token failed",
 		})
+		return
 	}
 
 	b, err := h.s.GetCharge(c.Request.Context(), k.(string))
@@ -80,6 +82,39 @@ func (h *Handler) GetPayment(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": b,
+	})
+
+}
+
+func (h *Handler) GetPayments(c *gin.Context) {
+	logger := getLogger(c)
+
+	admin, ok := c.Get("admin")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+
+	if !admin.(bool) {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error": "forbidden",
+		})
+		return
+	}
+
+	orders, err := h.s.GetPayments(c.Request.Context())
+	if err != nil {
+		logger.Error("/paymenst", zap.Error(fmt.Errorf("get payments failed: %w", err)))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Errorf("get payments failed: %w", err).Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"orders": orders,
 	})
 
 }

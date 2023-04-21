@@ -120,16 +120,27 @@ func (p *Postgres) CreatePayment(ctx context.Context, order model.Order) error {
 	return nil
 }
 
-func (p *Postgres) GetPaymentByUserId(ctx context.Context, id string) (*model.Order, error) {
+func (p *Postgres) GetPaymentByUserId(ctx context.Context, id string) ([]model.Order, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	var order model.Order
-	err := p.DB.QueryRowContext(queryCtx, "SELECT * FROM orders WHERE user_id = $1", id).Scan(&order.ID, order.UserId, order.State, order.Data.Pricing.Local.Amount)
+	var orders []model.Order
+	rows, err := p.DB.QueryContext(queryCtx, "SELECT * FROM orders WHERE user_id = $1", id)
 	if err != nil {
-		return nil, fmt.Errorf("query row context failed: %w", err)
+		if err == sql.ErrNoRows {
+			return nil, service.ErrEmpty
+		}
+		return nil, fmt.Errorf("query context failed: %w", err)
 	}
-	return &order, nil
+
+	for rows.Next() {
+		var order model.Order
+		if err := rows.Scan(&order.ID, &order.UserId, &order.Data.OrderId, &order.State, &order.Data.Pricing.Local.Amount); err != nil {
+			return nil, fmt.Errorf("scna failed")
+		}
+		orders = append(orders, order)
+	}
+	return orders, nil
 }
 
 func (p *Postgres) GetPaymentId(ctx context.Context, id string) (string, float64, error) {
@@ -195,4 +206,27 @@ func (p *Postgres) SetBalance(ctx context.Context, userId string, balance float6
 		return fmt.Errorf("exec failed: %w", err)
 	}
 	return nil
+}
+
+func (p *Postgres) GetAllPayments(ctx context.Context) ([]model.Order, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var orders []model.Order
+	rows, err := p.DB.QueryContext(queryCtx, "SELECT * FROM orders")
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, service.ErrEmpty
+		}
+		return nil, fmt.Errorf("query context failed: %w", err)
+	}
+
+	for rows.Next() {
+		var order model.Order
+		if err := rows.Scan(&order.ID, &order.UserId, &order.Data.OrderId, &order.State, &order.Data.Pricing.Local.Amount); err != nil {
+			return nil, fmt.Errorf("scna failed")
+		}
+		orders = append(orders, order)
+	}
+	return orders, nil
 }

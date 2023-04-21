@@ -32,6 +32,7 @@ func (h *Handler) InitRouters() *gin.Engine {
 
 	router.POST("/payment", h.VerifyToken(), h.CreatePayment)
 	router.GET("/payment", h.VerifyToken(), h.GetPayment)
+	router.GET("/payments", h.VerifyToken(), h.GetPayments)
 
 	router.POST("/flood", h.VerifyToken(), h.Start)
 

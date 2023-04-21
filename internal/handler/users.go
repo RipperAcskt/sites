@@ -19,6 +19,7 @@ func (h *Handler) GetProfile(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": "verefy token failed",
 		})
+		return
 	}
 	user, p, err := h.s.GetProfile(c.Request.Context(), k.(string))
 	if err != nil {

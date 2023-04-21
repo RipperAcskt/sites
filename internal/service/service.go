@@ -8,6 +8,10 @@ import (
 	"sites/internal/model"
 )
 
+var (
+	ErrEmpty = fmt.Errorf("error no rows")
+)
+
 type Service struct {
 	*AuthService
 	*UserService
@@ -22,7 +26,7 @@ type Repo interface {
 }
 type UserRepo interface {
 	GetUserById(ctx context.Context, id string) (*model.User, error)
-	GetPaymentByUserId(ctx context.Context, id string) (*model.Order, error)
+	GetPaymentByUserId(ctx context.Context, id string) ([]model.Order, error)
 }
 type UserService struct {
 	UserRepo
@@ -41,13 +45,13 @@ func NewUserService(postgres UserRepo) *UserService {
 	return &UserService{postgres}
 }
 
-func (user *UserService) GetProfile(ctx context.Context, id string) (*model.User, *model.Order, error) {
+func (user *UserService) GetProfile(ctx context.Context, id string) (*model.User, []model.Order, error) {
 	u, err := user.GetUserById(ctx, id)
 	if err != nil {
 		return nil, nil, fmt.Errorf("get user by id: %w", err)
 	}
 	p, err := user.GetPaymentByUserId(ctx, id)
-	if err != nil {
+	if err != nil && err != ErrEmpty {
 		return nil, nil, fmt.Errorf("get payment by id: %w", err)
 	}
 	return u, p, nil

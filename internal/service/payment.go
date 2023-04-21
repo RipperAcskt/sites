@@ -16,6 +16,7 @@ type PaymentRepo interface {
 	GetPaymentId(ctx context.Context, id string) (string, float64, error)
 	CompletePayment(ctx context.Context, order_id, user_id string, balance float64) error
 	SetState(ctx context.Context, order_id string) error
+	GetAllPayments(ctx context.Context) ([]model.Order, error)
 }
 
 type Payment struct {
@@ -87,4 +88,12 @@ func (p *Payment) GetCharge(ctx context.Context, id string) (model.State, error)
 	}
 
 	return model.Completed, nil
+}
+
+func (p *Payment) GetPayments(ctx context.Context) ([]model.Order, error) {
+	orders, err := p.GetAllPayments(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get all payments failed: %w", err)
+	}
+	return orders, nil
 }

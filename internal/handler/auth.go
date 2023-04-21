@@ -94,7 +94,7 @@ func (h *Handler) VerifyToken() gin.HandlerFunc {
 		}
 		accessToken := token[1]
 
-		id, err := service.Verify(accessToken, h.Cfg)
+		id, admin, err := service.Verify(accessToken, h.Cfg)
 		if err != nil {
 			if errors.Is(err, service.ErrTokenExpired) {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -117,6 +117,7 @@ func (h *Handler) VerifyToken() gin.HandlerFunc {
 		}
 
 		c.Set("id", fmt.Sprint(id))
+		c.Set("admin", admin)
 
 		c.Next()
 
@@ -136,7 +137,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 		return
 	}
 
-	id, err := service.Verify(ref.Refresh_token, h.Cfg)
+	id, admin, err := service.Verify(ref.Refresh_token, h.Cfg)
 	if err != nil {
 		if errors.Is(err, service.ErrTokenExpired) {
 
@@ -163,6 +164,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 	params := service.TokenParams{
 		ID:                id,
 		Type:              service.User,
+		Admin:             admin,
 		HS256_SECRET:      h.Cfg.HS256_SECRET,
 		ACCESS_TOKEN_EXP:  h.Cfg.ACCESS_TOKEN_EXP,
 		REFRESH_TOKEN_EXP: h.Cfg.REFRESH_TOKEN_EXP,
@@ -174,6 +176,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
+			return
 		}
 
 		logger.Error("/users/auth/refresh", zap.Error(fmt.Errorf("new token failed: %w", err)))
