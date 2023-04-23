@@ -14,9 +14,9 @@ func (h *Handler) Start(c *gin.Context) {
 	logger := getLogger(c)
 
 	var model struct {
-		Email string  `json:"email"`
+		Email string  `json:"Email"`
 		Price float64 `json:"price"`
-		Time  int     `json:"time"`
+		Time  int     `json:"Time"`
 	}
 
 	if err := c.BindJSON(&model); err != nil {
@@ -34,7 +34,7 @@ func (h *Handler) Start(c *gin.Context) {
 		return
 	}
 
-	err := h.s.Start(c.Request.Context(), id.(string), model.Email, model.Price, model.Time)
+	err := h.s.CreateMaster(c.Request.Context(), id.(string), model.Email, model.Price, model.Time)
 	if err != nil {
 		if errors.Is(err, service.ErrLowBalance) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -48,4 +48,39 @@ func (h *Handler) Start(c *gin.Context) {
 		})
 		return
 	}
+}
+
+func (h *Handler) GetTasks(c *gin.Context) {
+	k, ok := c.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+	tasks := h.s.GetTasks(k.(string))
+	var info []struct {
+		Id     int
+		Status string
+		Email  string
+		Time   int
+	}
+	var tmp struct {
+		Id     int
+		Status string
+		Email  string
+		Time   int
+	}
+	for i, task := range tasks {
+		tmp.Id = i
+		tmp.Status = task.Status
+		tmp.Email = task.Email
+		tmp.Time = task.Time
+		info = append(info, tmp)
+	}
+	fmt.Println(tasks)
+	c.JSON(http.StatusOK, gin.H{
+		"userID": k,
+		"tasks:": info,
+	})
 }
