@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sites/internal/service"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -78,9 +79,83 @@ func (h *Handler) GetTasks(c *gin.Context) {
 		tmp.Time = task.Time
 		info = append(info, tmp)
 	}
-	fmt.Println(tasks)
+
 	c.JSON(http.StatusOK, gin.H{
 		"userID": k,
 		"tasks:": info,
 	})
+}
+
+func (h *Handler) StopTask(c *gin.Context) {
+	k, ok := c.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+
+	var status struct {
+		Status string `json:"Status"`
+	}
+
+	if err := c.BindJSON(&status); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	orderID := c.Param("id")
+	orderIDInt, err := strconv.Atoi(orderID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	if status.Status == "stop" {
+		err = h.s.StopTask(k.(string), orderIDInt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err,
+			})
+		}
+		c.Status(http.StatusOK)
+		return
+	}
+	if status.Status == "start" {
+		tasks := h.s.GetTasks(k.(string))
+		if len(tasks) <= orderIDInt {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": service.ErrNoTask,
+			})
+			return
+		}
+		h.s.MasterProgram(&tasks[orderIDInt], tasks[orderIDInt].Email, tasks[orderIDInt].Time)
+	}
+
+}
+
+func (h *Handler) DeleteTask(c *gin.Context) {
+	k, ok := c.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+
+	orderID := c.Param("id")
+	orderIDInt, err := strconv.Atoi(orderID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	h.s.DeleteTask(k.(string), orderIDInt)
+
 }

@@ -36,6 +36,8 @@ func (h *Handler) InitRouters() *gin.Engine {
 	router.GET("/payments", h.VerifyToken(), h.GetPayments)
 
 	router.GET("/tasks", h.VerifyToken(), h.GetTasks)
+	router.PUT("/task/:id", h.VerifyToken(), h.StopTask)
+	router.DELETE("/task/:id", h.VerifyToken(), h.DeleteTask)
 
 	router.POST("/flood", h.VerifyToken(), h.Start)
 
