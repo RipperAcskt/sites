@@ -161,7 +161,8 @@ func (h *Handler) StopTask(c *gin.Context) {
 			})
 			return
 		}
-		h.s.MasterProgram(&tasks[k.(string)][orderIDInt], tasks[k.(string)][orderIDInt].Email, tasks[k.(string)][orderIDInt].Time)
+		tasks[k.(string)][orderIDInt].Status = "in_progress"
+		h.s.MasterProgram(&tasks[k.(string)][orderIDInt], tasks[k.(string)][orderIDInt].Email, tasks[k.(string)][orderIDInt].Time, k.(string), orderIDInt)
 	}
 
 }

@@ -72,7 +72,7 @@ func (m *Master) CreateMaster(ctx context.Context, userId, email string, price f
 	} else {
 		m.store[userId] = append(m.store[userId], info)
 	}
-	err = m.MasterProgram(&info, email, time)
+	err = m.MasterProgram(&info, email, time, userId, len(m.store[userId])-1)
 	if err != nil {
 		return fmt.Errorf("master program failed: %w", err)
 	}
@@ -123,7 +123,7 @@ func (m *Master) DeleteTask(userId string, orderID int) error {
 	return nil
 }
 
-func (m *Master) MasterProgram(info *WorkInfo, email string, t int) error {
+func (m *Master) MasterProgram(info *WorkInfo, email string, t int, userID string, orderID int) error {
 	if info.Status == StatusDeleted || info.Status == StatusComplete {
 		return fmt.Errorf("task alredy complete or delete")
 	}
@@ -143,7 +143,7 @@ func (m *Master) MasterProgram(info *WorkInfo, email string, t int) error {
 			info.Status = StatusComplete
 			return
 		case <-info.ctx.Done():
-			info.timeLeft = time.Until(start)
+			m.store[userID][orderID].timeLeft = time.Until(start)
 			return
 		}
 	}()
