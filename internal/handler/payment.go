@@ -44,7 +44,7 @@ func (h *Handler) CreatePayment(c *gin.Context) {
 	}
 
 	id, _ := strconv.ParseUint(k.(string), 10, 64)
-	err := h.s.CreateCharge(c.Request.Context(), charge, id)
+	order, err := h.s.CreateCharge(c.Request.Context(), charge, id)
 	if err != nil {
 		if errors.Is(err, service.ErrUserDoesNotExists) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -58,6 +58,7 @@ func (h *Handler) CreatePayment(c *gin.Context) {
 		})
 		return
 	}
+	c.JSON(http.StatusOK, order)
 }
 
 func (h *Handler) GetPayment(c *gin.Context) {

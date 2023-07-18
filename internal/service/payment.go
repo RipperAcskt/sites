@@ -30,23 +30,23 @@ func NewPayment(cfg config.Config, repo PaymentRepo) *Payment {
 	return &Payment{repo, coinbase.Client(cfg.COINBASE_API), cfg}
 }
 
-func (p *Payment) CreateCharge(ctx context.Context, chargeParams coinbase.ChargeParam, id uint64) error {
+func (p *Payment) CreateCharge(ctx context.Context, chargeParams coinbase.ChargeParam, id uint64) (*model.Order, error) {
 	charge, err := p.client.Charge.Create(chargeParams)
 	if err != nil {
-		return fmt.Errorf("create failed: %w", err)
+		return nil, fmt.Errorf("create failed: %w", err)
 	}
 
 	data, _ := json.Marshal(charge)
-
+	fmt.Println(string(data))
 	var order model.Order
 	json.Unmarshal(data, &order)
 	order.State = model.Submitted
 	order.UserId = id
 	err = p.CreatePayment(ctx, order)
 	if err != nil {
-		return fmt.Errorf("create payment failed: %w", err)
+		return nil, fmt.Errorf("create payment failed: %w", err)
 	}
-	return nil
+	return &order, nil
 }
 
 func (p *Payment) GetCharge(ctx context.Context, id string) (model.State, error) {

@@ -32,8 +32,9 @@ type Order struct {
 	UserId uint64
 	State  State
 	Data   struct {
-		OrderId string `json:"id"`
-		Pricing struct {
+		OrderId   string `json:"id"`
+		HostedURL string `json:"hosted_url"`
+		Pricing   struct {
 			Local struct {
 				Amount string `json:"amount"`
 			} `json:"local"`
