@@ -18,6 +18,7 @@ type PaymentRepo interface {
 	SetState(ctx context.Context, order_id string) error
 	GetAllPayments(ctx context.Context) ([]model.Order, error)
 	GetPaymentById(ctx context.Context, id string) (string, float64, string, error)
+	SetBalance(ctx context.Context, userId string, balance float64) error
 }
 
 type Payment struct {
@@ -99,7 +100,7 @@ func (p *Payment) GetPayments(ctx context.Context) ([]model.Order, error) {
 	return orders, nil
 }
 
-func (p *Payment) Complete(ctx context.Context, id string) error {
+func (p *Payment) Complete(ctx context.Context, id, userId string) error {
 	orderId, balance, state, err := p.GetPaymentById(ctx, id)
 	if err != nil {
 		return fmt.Errorf("get payment id failed: %w", err)
@@ -112,6 +113,11 @@ func (p *Payment) Complete(ctx context.Context, id string) error {
 	err = p.CompletePayment(ctx, orderId, id, balance)
 	if err != nil {
 		return fmt.Errorf("complete payment failed: %w", err)
+	}
+
+	err = p.SetBalance(ctx, userId, balance)
+	if err != nil {
+		return fmt.Errorf("set balance failed: %w", err)
 	}
 
 	return nil

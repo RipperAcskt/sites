@@ -136,9 +136,20 @@ func (h *Handler) CompletePayment(c *gin.Context) {
 		return
 	}
 
+	var user struct {
+		UserId string `json:"user_id"`
+	}
+
+	if err := c.BindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	id := c.Param("id")
 
-	err := h.s.Complete(c, id)
+	err := h.s.Complete(c, id, user.UserId)
 	if err != nil {
 		if errors.Is(err, service.ErrComplete) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
