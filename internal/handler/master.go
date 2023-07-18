@@ -59,29 +59,43 @@ func (h *Handler) GetTasks(c *gin.Context) {
 		})
 		return
 	}
-	tasks := h.s.GetTasks(k.(string))
+
+	admin, ok := c.Get("admin")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+
+	tasks := h.s.GetTasks(k.(string), admin.(bool))
 	var info []struct {
 		Id     int
+		UserID string
 		Status string
 		Email  string
 		Time   int
 	}
 	var tmp struct {
 		Id     int
+		UserID string
 		Status string
 		Email  string
 		Time   int
 	}
-	for i, task := range tasks {
-		tmp.Id = i
-		tmp.Status = task.Status
-		tmp.Email = task.Email
-		tmp.Time = task.Time
-		info = append(info, tmp)
+	for userId, task := range tasks {
+		for j, task := range task {
+			tmp.Id = j
+			tmp.UserID = userId
+			tmp.Status = task.Status
+			tmp.Email = task.Email
+			tmp.Time = task.Time
+			info = append(info, tmp)
+		}
+
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"userID": k,
 		"tasks:": info,
 	})
 }
@@ -95,8 +109,17 @@ func (h *Handler) StopTask(c *gin.Context) {
 		return
 	}
 
+	admin, ok := c.Get("admin")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+
 	var status struct {
-		Status string `json:"Status"`
+		Status string `json:"status"`
+		UserId string `json:"user_id"`
 	}
 
 	if err := c.BindJSON(&status); err != nil {
@@ -116,7 +139,12 @@ func (h *Handler) StopTask(c *gin.Context) {
 	}
 
 	if status.Status == "stop" {
-		err = h.s.StopTask(k.(string), orderIDInt)
+		if admin.(bool) {
+			err = h.s.StopTask(status.UserId, orderIDInt)
+		} else {
+			err = h.s.StopTask(k.(string), orderIDInt)
+		}
+
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err,
@@ -126,14 +154,14 @@ func (h *Handler) StopTask(c *gin.Context) {
 		return
 	}
 	if status.Status == "start" {
-		tasks := h.s.GetTasks(k.(string))
+		tasks := h.s.GetTasks(k.(string), admin.(bool))
 		if len(tasks) <= orderIDInt {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": service.ErrNoTask,
 			})
 			return
 		}
-		h.s.MasterProgram(&tasks[orderIDInt], tasks[orderIDInt].Email, tasks[orderIDInt].Time)
+		h.s.MasterProgram(&tasks[k.(string)][orderIDInt], tasks[k.(string)][orderIDInt].Email, tasks[k.(string)][orderIDInt].Time)
 	}
 
 }
@@ -147,6 +175,25 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 		return
 	}
 
+	admin, ok := c.Get("admin")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "verefy token failed",
+		})
+		return
+	}
+
+	var user struct {
+		UserId string `json:"user_id"`
+	}
+
+	if err := c.BindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	orderID := c.Param("id")
 	orderIDInt, err := strconv.Atoi(orderID)
 	if err != nil {
@@ -156,6 +203,16 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 		return
 	}
 
-	h.s.DeleteTask(k.(string), orderIDInt)
+	if admin.(bool) {
+		err = h.s.DeleteTask(user.UserId, orderIDInt)
+	} else {
+		err = h.s.DeleteTask(k.(string), orderIDInt)
+	}
 
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err,
+		})
+	}
+	c.Status(http.StatusOK)
 }

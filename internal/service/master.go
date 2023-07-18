@@ -79,8 +79,13 @@ func (m *Master) CreateMaster(ctx context.Context, userId, email string, price f
 	return nil
 }
 
-func (m *Master) GetTasks(userId string) []WorkInfo {
-	return m.store[userId]
+func (m *Master) GetTasks(userId string, admin bool) map[string][]WorkInfo {
+	info := make(map[string][]WorkInfo)
+	if admin {
+		return m.store
+	}
+	info[userId] = m.store[userId]
+	return info
 }
 
 func (m *Master) StopTask(userId string, orderID int) error {
@@ -114,7 +119,7 @@ func (m *Master) DeleteTask(userId string, orderID int) error {
 	task[orderID] = task[len(task)-1]
 	task[len(task)-1] = WorkInfo{}
 	task = task[:len(task)-1]
-	fmt.Println(task)
+	m.store[userId] = task
 	return nil
 }
 
