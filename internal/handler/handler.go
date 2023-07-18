@@ -21,7 +21,7 @@ func New(s *service.Service, cfg *config.Config, log *zap.Logger) *Handler {
 func (h *Handler) InitRouters() *gin.Engine {
 	router := gin.New()
 
-	router.Use(h.Log())
+	router.Use(CORSMiddleware(), h.Log())
 
 	auth := router.Group("/auth")
 	auth.POST("sing-up", h.SingUp)
@@ -42,4 +42,21 @@ func (h *Handler) InitRouters() *gin.Engine {
 	router.POST("/flood", h.VerifyToken(), h.Start)
 
 	return router
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
+		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Origin, Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(200)
+		} else {
+			c.Next()
+		}
+	}
 }
